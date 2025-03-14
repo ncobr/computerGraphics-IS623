@@ -9,12 +9,18 @@ class ImageProcessor:
         """
         Inicializa el procesador de imágenes con una imagen dada.
         """
-        self.logo = io.imread(logo_path)
-        self.img1 = io.imread(img1_path)
-        self.img2 = io.imread(img2_path)
+        self.logo = np.array(plt.imread(logo_path))
+        self.img1 = np.array(plt.imread(img1_path))
+        self.img2 = np.array(plt.imread(img2_path))
 
         if self.logo.dtype == np.uint8:
             self.logo = self.logo / 255.0
+
+        if self.img1.dtype == np.uint8:
+            self.img1 = self.img1 / 255.0
+
+        if self.img2.dtype == np.uint8:
+            self.img2 = self.img2 / 255.0
 
     def show_image(self, matrix):
         """
@@ -29,7 +35,7 @@ class ImageProcessor:
         Invierte los colores de la imagen.
         """
         print("\nInvertiendo los colores de la imagen")
-        return 255 - (self.logo * 255)
+        return 1 - self.logo
 
     def red_layer(self):
         """
@@ -109,20 +115,19 @@ class ImageProcessor:
 
     def fusion_images(self):
         print("\nFusionando imagenes")
-        alpha = 0.5
-        return (self.img1 + self.img2).astype("uint8")
+        return self.img1 + self.img2
 
     def fusion_images_eq(self):
         print("\nFusionando imagenes con equalizacion")
         alpha = 0.5
-        return (alpha * self.img1 + (1 - alpha) * self.img2).astype("uint8")
+        return (self.img1 * alpha) + (self.img2 * (1 - alpha))
 
     def factor_image(self, factor):
         print("\nAplicando factor a la imagen")
         # self.logo / 255.0
         factor = float(factor)
-        factores_image = np.clip(self.logo * factor, 0, 1)
-        return (factores_image * 255).astype("uint8")
+        factores_image = self.logo + factor
+        return factores_image
 
     def grayscale_average(self):
         print("\nAplicando escala de grises (Avarage)")
@@ -278,13 +283,13 @@ class Menu:
             print("15. Salir")
 
             try:
-                option = int(input("\nSelecciona una opción (1-9): "))
+                option = int(input("\nSelecciona una opción (1-15): "))
 
                 if option in self.options:
                     self.options[option]()  # Ejecuta la opción seleccionada
                 else:
                     print(
-                        "Opción no válida. Por favor, selecciona una opción entre 1 y 9.")
+                        "Opción no válida. Por favor, selecciona una opción entre 1 y 15.")
             except ValueError:
                 print("Por favor ingresa un número válido.")
 
