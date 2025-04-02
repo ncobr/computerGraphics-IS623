@@ -56,7 +56,8 @@ class ImageProcessor:
         elif image_type == 'img2':
             self.img2 = image
         else:
-            raise ValueError("El tipo de imagen debe ser 'logo', 'img1' o 'img2'")
+            raise ValueError(
+                "El tipo de imagen debe ser 'logo', 'img1' o 'img2'")
 
     def show_image(self, matrix, title=None):
         """
@@ -162,7 +163,8 @@ class ImageProcessor:
             image_copy[:, :, 1] = np.ones((row, col))  # Verde a máximo
             image_copy[:, :, 2] = 0  # Azul a 0
         else:
-            raise ValueError("Canal inválido. Usa 'magenta', 'cyan' o 'yellow'")
+            raise ValueError(
+                "Canal inválido. Usa 'magenta', 'cyan' o 'yellow'")
 
         return image_copy
 
@@ -246,10 +248,19 @@ class ImageProcessor:
         - Imagen con brillo ajustado
         """
         img = self.logo if image is None else image
-        factor = float(factor)
 
-        # Limitar el resultado entre 0 y 1 para evitar desbordamiento
-        return np.clip(img + factor, 0, 1)
+        if img is None:
+            raise ValueError(
+                "No hay imagen disponible para ajustar el brillo.")
+
+        # Asegurar que la imagen esté en formato float antes de modificar el brillo
+        if img.dtype == np.uint8:
+            img = img.astype(np.float32) / 255.0
+
+        # Aplicar brillo y limitar los valores entre 0 y 1
+        adjusted = np.clip(img + factor, 0, 1)
+
+        return adjusted
 
     def convert_to_grayscale(self, method='average', image=None):
         """
@@ -271,7 +282,8 @@ class ImageProcessor:
         elif method == 'midgray':
             return (np.max(img, axis=2) + np.min(img, axis=2)) / 2
         else:
-            raise ValueError("Método inválido. Usa 'average', 'luminosity' o 'midgray'")
+            raise ValueError(
+                "Método inválido. Usa 'average', 'luminosity' o 'midgray'")
 
     def grayscale_average(self, image=None):
         """
@@ -325,7 +337,8 @@ class ImageProcessor:
         adjusted_image = np.copy(image_copy)
 
         # Ajustar solo el canal específico
-        adjusted_image[:, :, ch_idx] = np.clip(image_copy[:, :, ch_idx] + factor, 0, 1)
+        adjusted_image[:, :, ch_idx] = np.clip(
+            image_copy[:, :, ch_idx] + factor, 0, 1)
 
         return adjusted_image
 
@@ -371,7 +384,8 @@ class ImageProcessor:
         if len(image_copy.shape) == 3:
             zoomed_image = np.zeros_like(image_copy)
             for i in range(image_copy.shape[2]):
-                zoomed_image[:, :, i] = zoom(image_copy[:, :, i], zoom_factor, order=1)
+                zoomed_image[:, :, i] = zoom(
+                    image_copy[:, :, i], zoom_factor, order=1)
         else:
             zoomed_image = zoom(image_copy, zoom_factor, order=1)
 
