@@ -1,3 +1,4 @@
+from numpy._core.numerictypes import uint8
 from scipy.ndimage import zoom
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,21 +8,24 @@ from scipy.ndimage import rotate
 
 class ImageProcessor:
     def __init__(self, logo_path, img1_path):
-        self.logo = io.imread(logo_path)
-        self.img1 = io.imread(img1_path)
+        self.logo = np.array(plt.imread(logo_path))
+        self.img1 = np.array(plt.imread(img1_path))
 
         if self.logo.dtype == np.uint8:
             self.logo = self.logo / 255.0
 
+        if self.img1.dtype == np.uint8:
+            self.img1 = self.img1 / 255.0
+
     def show_image(self, matrix):
-        plt.imshow(matrix)
+        plt.imshow(matrix, cmap="gray")
         plt.axis("off")
         plt.show()
 
     def brightness(self, factor):
-        print("\nAplicando factor a la imagen")
+        print("\nAplicando factor de brillo a la imagen")
         factor = float(factor)
-        return ((np.clip(self.logo * factor, 0, 1)) * 255).astype("uint8")
+        return self.logo + factor
 
     def adjust_channel_brightness(self, channel, factor):
         """
@@ -37,7 +41,7 @@ class ImageProcessor:
         factor = float(factor)
         image_copy = np.copy(self.logo)
 
-        # Determinar el índice del canal
+        # Determinar el índice del canal segun una letra
         channel_map = {
             'r': 0,
             'g': 1,
@@ -49,12 +53,8 @@ class ImageProcessor:
             return self.logo
 
         ch_idx = channel_map[channel.lower()]
-
         adjusted_image = np.zeros_like(image_copy)
-
-        adjusted_image[:, :, ch_idx] = np.clip(
-            image_copy[:, :, ch_idx] * factor, 0, 255)
-
+        adjusted_image[:, :, ch_idx] = image_copy[:, :, ch_idx] + factor
         return adjusted_image
 
     def adjust_contrast(self, factor):
@@ -68,17 +68,11 @@ class ImageProcessor:
         - Imagen con el contraste ajustado.
         """
         factor = float(factor)
-        image_copy = np.copy(self.img1).astype(np.float32)
+        image_copy = np.copy(self.img1)
 
-        if image_copy.max() <= 1.0:
-            image_copy *= 255  # Escalar a 0-255 si está normalizada
-
-        # Ajuste de contraste
-        contrasted_image = 128 + factor * (image_copy - 128)
-
-        # Asegurar valores válidos en el rango [0, 255]
-        contrasted_image = np.clip(contrasted_image, 0, 255).astype(np.uint8)
-
+        image_dark_areas = factor * np.log10(1 + image_copy)
+        image_clear_areas = factor * np.exp(image_copy - 1)
+        contrasted_image = image_dark_areas + image_clear_areas
         return contrasted_image
 
     def zoom_image(self, zoom_percentage):
@@ -91,27 +85,17 @@ class ImageProcessor:
         Retorna:
         - Imagen con zoom aplicado.
         """
-        image_copy = np.copy(self.logo)
+        image_copy = np.copy(self.logo) / 255
 
-        # Convertir porcentaje a factor (ej: 200% → 2.0)
-        zoom_factor = zoom_percentage / 100.0
+        h, w = image_copy.shape[:2]
+        zoom_area = 100
+        start_row = h // 2 - zoom_area // 2
+        end_row = h // 2 + zoom_area // 2
+        start_col = w // 2 - zoom_area // 2
+        end_col = w // 2 - zoom_area // 2
 
-        # Obtener dimensiones originales
-        h, w, _ = image_copy.shape
-
-        # Calcular nuevas dimensiones del área recortada
-        new_h = int(h / zoom_factor)
-        new_w = int(w / zoom_factor)
-
-        # Calcular coordenadas del centro
-        x_start = (w - new_w) // 2
-        y_start = (h - new_h) // 2
-
-        # Recortar el área central
-        cropped = image_copy[y_start:y_start+new_h, x_start:x_start+new_w]
-
-        # Aplicar zoom
-        zoomed = zoom(cropped, (zoom_factor, zoom_factor, 1), order=1)
+        cut = image_copy[start_row:end_row, start_col:end_col]
+        zoomed = np.kron(cut, np.ones((zoom_percentage, zoom_percentage, 1)))
 
         return zoomed
 
@@ -126,11 +110,10 @@ class ImageProcessor:
 
         # Convertir a escala de grises
         grayscale = np.mean(image_copy, axis=-1)
+        umbral = 0.5
+        img_bin = (grayscale > umbral)
 
-        # Aplicar umbral fijo de 128
-        binary_image = np.where(grayscale > 128, 255, 0).astype(np.uint8)
-
-        return binary_image
+        return img_bin
 
     def rotate_image(self, angle):
         """
@@ -241,8 +224,8 @@ class Menu:
             print("Por favor, ingrese un número válido.")
 
     def zoom_image(self):
-        zoom_percentage = float(
-            input("Ingrese el porcentaje de zoom (ej. 200 para 200%): "))
+        zoom_percentage = int(input(
+            "Ingrese el porcentaje de zoom (ej. 200 para 200%): "))
         zoomed = self.image_processor.zoom_image(zoom_percentage)
         self.image_processor.show_image(zoomed)
 
